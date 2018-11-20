@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
@@ -12,10 +13,12 @@ namespace BigRunner.Core
     public sealed class SqlRunner
     {
         private readonly SqlRunnerOptions _options;
+        private readonly ILogger _logger;
 
-        public SqlRunner(SqlRunnerOptions options)
+        public SqlRunner(ILogger logger, SqlRunnerOptions options)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task Run(CancellationToken token)
@@ -71,13 +74,15 @@ namespace BigRunner.Core
                                 break;
                         }
                     }
-                    catch (SqlException)
+                    catch (SqlException ex)
                     {
+                        _logger.Error(ex, "A sql command caused an error.");
                         builder = new StringBuilder();
                         isFirstLine = true;
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        _logger.Error(ex, "Something went wrong and caused error.");
                         break;
                     }
                 }
@@ -112,44 +117,34 @@ namespace BigRunner.Core
                         Console.WriteLine($"[Error] Your database is in {sqlConnection.State.ToString()} status");
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    _logger.Error(ex, "Establishing a database connection caused an error.");
                 }
             }
 
             return null;
         }
 
-        /// <summary>
-        /// Input big sql script file path data
-        /// </summary>
-        /// <returns>Returns stream reader to file</returns>
-        private static TextReader GetSqlScriptReader(string sqlFilePath, CancellationToken token)
+        private TextReader GetSqlScriptReader(string sqlFilePath, CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
-                if (File.Exists(sqlFilePath))
+                try
                 {
-                    try
+                    var reader = new StreamReader(sqlFilePath);
+                    if (reader != null)
                     {
-                        var reader = new StreamReader(sqlFilePath);
-                        if (reader != null)
-                        {
-                            return reader;
-                        }
-                        else
-                        {
-                            Console.WriteLine("[Error] Can't open the stream to read file");
-                        }
+                        return reader;
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Console.WriteLine("[Error] " + ex.Message);
+                        _logger.Verbose("Opening the sql script failed.");
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Console.WriteLine($"[Error] The big sql script file path '{sqlFilePath}' hasn't existed in your hard drive");
+                    _logger.Error(ex, "Opening the sql script file caused an error.");
                 }
             }
 
