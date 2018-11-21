@@ -1,14 +1,15 @@
-﻿using Serilog;
+﻿using MahApps.Metro.Controls.Dialogs;
+using Serilog;
 using System;
 using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Input;
 
 namespace BigRunner.WpfApp
 {
-    public sealed class MainViewModel : ObservableObject
+    public sealed class ShellViewModel : ObservableObject
     {
+        private readonly IDialogCoordinator _dialogCoordinator;
         private readonly BusyStack _busyStack;
         private readonly Func<string, ILogger> _loggerFactory;
 
@@ -28,11 +29,15 @@ namespace BigRunner.WpfApp
             set { SetValue(ref _selectedRunner, value); }
         }
 
-        public ICommand AddCommand { get; }
-        public ICommand RemoveCommand { get; }
+        public IAsyncCommand AddCommand { get; }
+        public IAsyncCommand RemoveCommand { get; }
 
-        public MainViewModel()
+        public IAsyncCommand EditRunnerNameCommand { get; }
+        public IAsyncCommand EditSelectedRunnerNameCommand { get; }
+
+        public ShellViewModel()
         {
+            _dialogCoordinator = DialogCoordinator.Instance;
             _loggerFactory = LoggerFactory;
             _busyStack = new BusyStack(hasItems => IsBusy = hasItems);
 
@@ -45,7 +50,7 @@ namespace BigRunner.WpfApp
         {
             using (_busyStack.GetToken())
             {
-                Runners.Add(new SqlRunnerViewModel(_loggerFactory));
+                Runners.Add(new SqlRunnerViewModel(_loggerFactory, "Runner " + Runners.Count));
 
                 return Task.CompletedTask;
             }

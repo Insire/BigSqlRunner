@@ -9,12 +9,12 @@ namespace BigRunner.WpfApp
         public BusyToken(BusyStack stack)
         {
             _stack = stack ?? throw new ArgumentNullException(nameof(stack));
-            stack.Push(this).GetAwaiter().GetResult();
+            _ = stack.Push(this);
         }
 
         public void Dispose()
         {
-            _stack.Pull().GetAwaiter().GetResult();
+            _ = _stack.Pull();
         }
     }
 }

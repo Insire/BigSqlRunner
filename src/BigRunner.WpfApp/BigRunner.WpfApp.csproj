@@ -59,9 +59,10 @@
     </ApplicationDefinition>
     <Compile Include="AsyncCommand.cs" />
     <Compile Include="NotifyTaskCompletion.cs" />
+    <Compile Include="ShellViewModel.cs" />
     <Compile Include="SqlRunnerOptionsViewModel.cs" />
     <Compile Include="SqlRunnerViewModel.cs" />
-    <Page Include="MainWindow.xaml">
+    <Page Include="Shell.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -73,9 +74,8 @@
     <Compile Include="BusyStack.cs" />
     <Compile Include="BusyToken.cs" />
     <Compile Include="IAsyncCommand.cs" />
-    <Compile Include="MainViewModel.cs" />
-    <Compile Include="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
+    <Compile Include="Shell.xaml.cs">
+      <DependentUpon>Shell.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -107,6 +107,12 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="MahApps.Metro">
+      <Version>1.6.5</Version>
+    </PackageReference>
+    <PackageReference Include="MahApps.Metro.IconPacks.FontAwesome">
+      <Version>2.3.0</Version>
+    </PackageReference>
     <PackageReference Include="Serilog">
       <Version>2.7.1</Version>
     </PackageReference>

@@ -23,11 +23,19 @@ namespace BigRunner.WpfApp
             private set { SetValue(ref _isBusy, value); }
         }
 
-        public SqlRunnerViewModel(Func<string, ILogger> loggerFactory)
+        private string _name;
+        public string Name
+        {
+            get { return _name; }
+            set { SetValue(ref _name, value); }
+        }
+
+        public SqlRunnerViewModel(Func<string, ILogger> loggerFactory, string name)
         {
             _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
             _busyStack = new BusyStack(hasItems => IsBusy = hasItems);
 
+            Name = name;
             OptionsViewModel = new SqlRunnerOptionsViewModel();
             ExecuteScript = AsyncCommand.Create(ExecuteScriptInternalAsync, CanExecuteScript);
         }
@@ -42,7 +50,8 @@ namespace BigRunner.WpfApp
                     SqlFilePath = OptionsViewModel.SqlFilePath,
                     Terminator = OptionsViewModel.Terminator,
                 };
-                var runner = new SqlRunner(_loggerFactory("TODO"), options);
+                var log = _loggerFactory("TODO"); // fill with database name
+                var runner = new SqlRunner(log, options);
 
                 await runner.Run(token).ConfigureAwait(false);
             }
