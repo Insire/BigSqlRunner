@@ -5,7 +5,7 @@ using System.Windows;
 
 namespace BigRunner.WpfApp
 {
-    public sealed class BusyStack : ObservableObject
+    public sealed class BusyStack
     {
         private readonly ConcurrentBag<BusyToken> _items;
 

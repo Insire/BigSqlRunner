@@ -7,9 +7,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 
 namespace BigRunner.WpfApp
 {
+    // TODO add progress
+    // TODO add dialog states
     public sealed class SqlRunnerViewModel : ObservableObject
     {
         private readonly IDialogCoordinator _dialogCoordinator;
@@ -62,7 +65,7 @@ namespace BigRunner.WpfApp
             EditCustomTerminatorCommand = AsyncCommand.Create(EditCustomTerminatorInternal, () => true);
         }
 
-        private Task ExecuteScriptInternalAsync(CancellationToken token)
+        private async Task ExecuteScriptInternalAsync(CancellationToken token)
         {
             using (_busyStack.GetToken())
             {
@@ -75,28 +78,19 @@ namespace BigRunner.WpfApp
 
                 if (_logger is null)
                 {
-                    var config = _loggerFactory("TODO");
+                    var config = _loggerFactory("TODO"); // fill with database name
                     Log = new LogViewModel(config);
-                    _logger = config.CreateLogger();// fill with database name
+                    _logger = config.CreateLogger();
                 }
 
                 var runner = new SqlRunner(_logger, options);
 
-                _logger.Verbose("Starting");
-                _logger.Debug("Starting");
-                _logger.Information("Starting");
-                _logger.Warning("Starting");
-                _logger.Error("Starting");
-                _logger.Fatal("Starting");
-
-                return Task.CompletedTask;
-                //await runner.Run(token).ConfigureAwait(false);
+                await runner.Run(token).ConfigureAwait(false);
             }
         }
 
         private bool CanExecuteScript()
         {
-            return true;
             return !_isBusy
                 && !string.IsNullOrEmpty(OptionsViewModel.SqlFilePath)
                 && File.Exists(OptionsViewModel.SqlFilePath)
@@ -113,13 +107,13 @@ namespace BigRunner.WpfApp
         private async Task EditNameInternal(CancellationToken token)
         {
             var result = await _dialogCoordinator.ShowInputAsync(this, "test", "message");
-            await System.Windows.Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => Name = result));
+            await System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => Name = result));
         }
 
         private async Task EditCustomTerminatorInternal(CancellationToken token)
         {
             var result = await _dialogCoordinator.ShowInputAsync(this, "test", "message");
-            await System.Windows.Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => OptionsViewModel.CustomTerminator = result));
+            await System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => OptionsViewModel.CustomTerminator = result));
         }
 
         private Task SelectScriptFileInternal(CancellationToken token)

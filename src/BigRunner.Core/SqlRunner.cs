@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace BigRunner.Core
 {
+    // TODO provide progress
     public sealed class SqlRunner
     {
         private readonly SqlRunnerOptions _options;

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace BigRunner.WpfApp
 {
+    // TODO serialize/save runners to file
     public sealed class ShellViewModel : ObservableObject
     {
         private readonly IDialogCoordinator _dialogCoordinator;
@@ -20,8 +21,6 @@ namespace BigRunner.WpfApp
             private set { SetValue(ref _isBusy, value); }
         }
 
-        public ObservableCollection<SqlRunnerViewModel> Runners { get; }
-
         private SqlRunnerViewModel _selectedRunner;
         public SqlRunnerViewModel SelectedRunner
         {
@@ -29,9 +28,10 @@ namespace BigRunner.WpfApp
             set { SetValue(ref _selectedRunner, value); }
         }
 
+        public ObservableCollection<SqlRunnerViewModel> Runners { get; }
+
         public IAsyncCommand AddCommand { get; }
         public IAsyncCommand RemoveCommand { get; }
-
         public IAsyncCommand EditRunnerNameCommand { get; }
         public IAsyncCommand EditSelectedRunnerNameCommand { get; }
 

@@ -6,6 +6,7 @@ using System.Reactive.Linq;
 
 namespace BigRunner.WpfApp
 {
+    // TODO add filtering per commands
     public sealed class LogViewModel : ObservableObject
     {
         private ObservableCollection<LogEvent> _items;
@@ -25,7 +26,7 @@ namespace BigRunner.WpfApp
         {
             configuration
                 .WriteTo.Observers(events => events
-                .Do(evt => _items.Add(evt))
+                .Do(evt => _items.Insert(0, evt))
                 .Subscribe());
         }
     }
