@@ -11,7 +11,7 @@ namespace BigRunner.WpfApp
     {
         private readonly IDialogCoordinator _dialogCoordinator;
         private readonly BusyStack _busyStack;
-        private readonly Func<string, ILogger> _loggerFactory;
+        private readonly Func<string, LoggerConfiguration> _loggerFactory;
 
         private bool _isBusy;
         public bool IsBusy
@@ -50,7 +50,10 @@ namespace BigRunner.WpfApp
         {
             using (_busyStack.GetToken())
             {
-                Runners.Add(new SqlRunnerViewModel(_loggerFactory, "Runner " + Runners.Count));
+                Runners.Add(new SqlRunnerViewModel(_dialogCoordinator, _loggerFactory, "Runner " + Runners.Count));
+
+                if (SelectedRunner is null)
+                    SelectedRunner = Runners[0];
 
                 return Task.CompletedTask;
             }
@@ -73,13 +76,12 @@ namespace BigRunner.WpfApp
                 && Runners.Contains(SelectedRunner);
         }
 
-        private static ILogger LoggerFactory(string databaseName)
+        private static LoggerConfiguration LoggerFactory(string databaseName)
         {
             return new LoggerConfiguration()
-                        .MinimumLevel.Debug()
+                        .MinimumLevel.Verbose()
                         .WriteTo.Console()
-                        .WriteTo.File("logs\\databaseName.log", rollingInterval: RollingInterval.Day)
-                        .CreateLogger();
+                        .WriteTo.File($"logs\\{databaseName}.log", rollingInterval: RollingInterval.Day);
         }
     }
 }

@@ -4,6 +4,7 @@
                  xmlns:Behaviours="clr-namespace:MahApps.Metro.Behaviours;assembly=MahApps.Metro"
                  xmlns:Dialog="clr-namespace:MahApps.Metro.Controls.Dialogs;assembly=MahApps.Metro"
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:events="clr-namespace:Serilog.Events;assembly=Serilog"
                  xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
                  xmlns:iconpacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
                  xmlns:local="clr-namespace:BigRunner.WpfApp"
@@ -101,7 +102,7 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <Grid Grid.Row="0" DataContext="{Binding OptionsViewModel}">
+                        <Grid Grid.Row="0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="5" />
@@ -121,11 +122,13 @@
                                      Grid.Column="0"
                                      mah:TextBoxHelper.ClearTextButton="True"
                                      mah:TextBoxHelper.Watermark="ConnectionString"
+                                     Text="{Binding OptionsViewModel.ConnectionString}"
                                      ToolTip="ConnectionString" />
 
                             <Button Grid.Row="0"
                                     Grid.Column="2"
                                     HorizontalAlignment="Right"
+                                    Command="{Binding OpenConnectionStringResourceCommand}"
                                     ToolTip="Run">
                                 <iconpacks:PackIconFontAwesome Kind="GlobeSolid" />
                             </Button>
@@ -134,18 +137,20 @@
                                      Grid.Column="0"
                                      mah:TextBoxHelper.ClearTextButton="True"
                                      mah:TextBoxHelper.Watermark="Path to SQL script file"
+                                     Text="{Binding OptionsViewModel.SqlFilePath}"
                                      ToolTip="Path to SQL script file" />
 
                             <Button Grid.Row="2"
                                     Grid.Column="2"
                                     HorizontalAlignment="Right"
+                                    Command="{Binding SelectScriptFileCommand}"
                                     ToolTip="Run">
                                 <iconpacks:PackIconFontAwesome Kind="FolderOpenSolid" />
                             </Button>
 
                             <ComboBox Grid.Row="4"
-                                      ItemsSource="{Binding Terminators}"
-                                      SelectedItem="{Binding Terminator}" />
+                                      ItemsSource="{Binding OptionsViewModel.Terminators}"
+                                      SelectedItem="{Binding OptionsViewModel.Terminator}" />
 
                             <Button Grid.Row="4"
                                     Grid.Column="2"
@@ -157,20 +162,58 @@
                             <Button Grid.Row="6"
                                     Grid.Column="2"
                                     HorizontalAlignment="Right"
+                                    Command="{Binding ExecuteScriptCommand}"
                                     ToolTip="Run">
                                 <iconpacks:PackIconFontAwesome Kind="PlaySolid" />
                             </Button>
                         </Grid>
 
-                        <DockPanel>
-                            <ItemsControl>
-                                <!--  LogEntries  -->
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <VirtualizingStackPanel />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
+                        <DockPanel Grid.Row="2" DataContext="{Binding Log}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding Items}"
+                                              ScrollViewer.CanContentScroll="True"
+                                              VirtualizingStackPanel.IsVirtualizing="True">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="events:LogEvent">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Timestamp, StringFormat=d/M/yyyy HH:mm:ss}" />
+                                                <TextBlock Margin="5,0,0,0" Text="{Binding Level, Mode=OneWay, StringFormat={}\[{0}\]}">
+                                                    <TextBlock.Style>
+                                                        <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="{x:Type TextBlock}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Level}" Value="Verbose">
+                                                                    <Setter Property="Foreground" Value="#555" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Level}" Value="Debug">
+                                                                    <Setter Property="Foreground" Value="#999" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Level}" Value="Information">
+                                                                    <Setter Property="Foreground" Value="#ccc" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Level}" Value="Warning">
+                                                                    <Setter Property="Foreground" Value="Gold" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Level}" Value="Error">
+                                                                    <Setter Property="Foreground" Value="Orange" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Level}" Value="Fatal">
+                                                                    <Setter Property="Foreground" Value="Red" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <TextBlock Margin="10,0" Text="{Binding MessageTemplate.Text}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <VirtualizingStackPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </ScrollViewer>
                         </DockPanel>
                     </Grid>
                 </Border>

@@ -18,6 +18,13 @@ namespace BigRunner.WpfApp
             set { SetValue(ref _terminator, value); }
         }
 
+        private string _customTerminator;
+        public string CustomTerminator
+        {
+            get { return _customTerminator; }
+            set { SetValue(ref _customTerminator, value); }
+        }
+
         private string _sqlFilePath;
         public string SqlFilePath
         {
