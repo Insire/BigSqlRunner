@@ -43,5 +43,16 @@ namespace BigRunner.WpfApp
         {
             Terminators = _cache;
         }
+
+        public SqlRunnerOptionsModel GetModel()
+        {
+            return new SqlRunnerOptionsModel()
+            {
+                ConnectionString = ConnectionString,
+                CustomTerminator = CustomTerminator,
+                SqlFilePath = SqlFilePath,
+                Terminator = Terminator,
+            };
+        }
     }
 }

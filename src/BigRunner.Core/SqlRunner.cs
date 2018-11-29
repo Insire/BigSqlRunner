@@ -2,7 +2,6 @@
 using System;
 using System.Data;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -22,7 +21,7 @@ namespace BigRunner.Core
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task Run(CancellationToken token)
+        public async Task Run(IProgress<int> progress, long startIndex, CancellationToken token)
         {
             var connectionString = _options.ConnectionString;
             var sqlFilePath = _options.SqlFilePath;
@@ -34,57 +33,33 @@ namespace BigRunner.Core
                 var sqlCommand = default(SqlCommand);
                 var builder = new StringBuilder();
                 var scriptLine = string.Empty;
-                var isFirstLine = true;
-
-                var watch = Stopwatch.StartNew();
+                var currentIndex = 0L;
 
                 while ((scriptLine = await reader.ReadLineAsync().ConfigureAwait(false)) != null)
                 {
+                    if (startIndex > currentIndex++)
+                        continue;
+
                     try
                     {
-                        if (!string.IsNullOrWhiteSpace(scriptLine))
-                        {
-                            if (isFirstLine)
-                            {
-                                builder = builder.Append(scriptLine);
-                                isFirstLine = false;
-                            }
-                            else
-                            {
-                                builder = builder
-                                            .Append(" ")
-                                            .Append(scriptLine);
-                            }
-                        }
+                        if (string.IsNullOrWhiteSpace(scriptLine))
+                            continue;
 
-                        switch (terminator)
-                        {
-                            case BatchTerminator.GO:
-                                if (scriptLine.EndsWith("GO"))
-                                {
-                                    // by doing this you move the pointer (i.e. last index) back one character but you don't change the mutability of the object.
-                                    builder.Length--;
-                                    builder.Length--;
-
-                                    await ExcuteQuery(builder.ToString()).ConfigureAwait(false);
-                                }
-                                break;
-
-                            case BatchTerminator.NewLine:
-                                await ExcuteQuery(builder.ToString()).ConfigureAwait(false);
-                                break;
-                        }
+                        await ExcuteQuery(scriptLine).ConfigureAwait(false);
                     }
                     catch (SqlException ex)
                     {
                         _logger.Error(ex, "A sql command caused an error.");
-                        builder = new StringBuilder();
-                        isFirstLine = true;
                     }
                     catch (Exception ex)
                     {
                         _logger.Error(ex, "Something went wrong and caused error.");
                         break;
+                    }
+                    finally
+                    {
+                        progress.Report(1);
+                        _logger.Verbose(scriptLine);
                     }
                 }
 

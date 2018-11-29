@@ -61,6 +61,8 @@
     <Compile Include="ViewModels\LogViewModel.cs" />
     <Compile Include="Commands\NotifyTaskCompletion.cs" />
     <Compile Include="ViewModels\ShellViewModel.cs" />
+    <Compile Include="SqlRunnerOptionsModel.cs" />
+    <Compile Include="SqlRunnerModel.cs" />
     <Compile Include="ViewModels\SqlRunnerOptionsViewModel.cs" />
     <Compile Include="ViewModels\SqlRunnerViewModel.cs" />
     <Page Include="Shell.xaml">
@@ -113,6 +115,9 @@
     </PackageReference>
     <PackageReference Include="MahApps.Metro.IconPacks.FontAwesome">
       <Version>2.3.0</Version>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>11.0.2</Version>
     </PackageReference>
     <PackageReference Include="Serilog">
       <Version>2.7.1</Version>

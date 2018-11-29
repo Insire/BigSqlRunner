@@ -1,7 +1,6 @@
 ﻿<mah:MetroWindow x:Class="BigRunner.WpfApp.Shell"
                  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                 xmlns:Dialog="clr-namespace:MahApps.Metro.Controls.Dialogs;assembly=MahApps.Metro"
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:events="clr-namespace:Serilog.Events;assembly=Serilog"
                  xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
@@ -10,10 +9,9 @@
                  xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  x:Name="ShellWindow"
-                 Title="MainWindow"
+                 Title="SQL Runner"
                  Width="800"
                  Height="450"
-                 Dialog:DialogParticipation.Register="{Binding}"
                  GlowBrush="Black"
                  ResizeMode="CanResizeWithGrip"
                  ShowIconOnTitleBar="False"
@@ -25,21 +23,62 @@
         <local:ShellViewModel x:Key="ShellViewModel" />
 
         <DataTemplate DataType="{x:Type local:SqlRunnerViewModel}">
-            <Border Height="30" Margin="0,5,5,5">
+            <Border Height="30" Margin="5">
                 <DockPanel>
-                    <Viewbox Margin="5" DockPanel.Dock="Left">
-                        <mah:ProgressRing Foreground="{DynamicResource AccentColorBrush}" IsActive="{Binding IsBusy}" />
-                    </Viewbox>
                     <Button Command="{Binding RemoveCommand, Source={StaticResource ShellViewModel}}"
                             DockPanel.Dock="Right"
                             ToolTip="Remove">
                         <iconpacks:PackIconFontAwesome Kind="MinusSolid" />
                     </Button>
-                    <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
+
+                    <DockPanel Margin="0 0 5 0">
+                        <mah:MetroProgressBar DockPanel.Dock="Bottom"
+                                              Foreground="{DynamicResource AccentColorBrush}"
+                                              IsIndeterminate="{Binding IsBusyAnalyzingFile, Mode=OneWay}"
+                                              Maximum="{Binding Maximum, Mode=OneWay}"
+                                              Value="{Binding Value, Mode=OneWay}">
+                            <mah:MetroProgressBar.Style>
+                                <Style BasedOn="{StaticResource {x:Type mah:MetroProgressBar}}" TargetType="{x:Type mah:MetroProgressBar}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsBusy}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </mah:MetroProgressBar.Style>
+                        </mah:MetroProgressBar>
+
+                        <TextBlock Text="{Binding Name}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                            <Setter Property="VerticalAlignment" Value="Bottom" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsBusy}" Value="False">
+                                            <Setter Property="VerticalAlignment" Value="Center" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </DockPanel>
                 </DockPanel>
             </Border>
         </DataTemplate>
     </mah:MetroWindow.Resources>
+
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding LoadCommand, Source={StaticResource ShellViewModel}, Mode=OneWay}" />
+        </i:EventTrigger>
+        <i:EventTrigger EventName="Closed">
+            <i:InvokeCommandAction Command="{Binding SaveCommand, Source={StaticResource ShellViewModel}, Mode=OneWay}" />
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
 
     <mah:MetroWindow.Flyouts>
         <mah:FlyoutsControl>
@@ -84,8 +123,11 @@
 
     <mah:MetroWindow.LeftWindowCommands>
         <mah:WindowCommands>
-            <Button Command="{Binding OpenNavigationCommand, ElementName=ShellWindow}" ToolTip="Home">
+            <Button Command="{Binding OpenDashboardCommand, ElementName=ShellWindow}" ToolTip="Dashboard">
                 <iconpacks:PackIconFontAwesome Kind="HomeSolid" />
+            </Button>
+            <Button Command="{Binding OpenNavigationCommand, ElementName=ShellWindow}" ToolTip="Runners">
+                <iconpacks:PackIconFontAwesome Kind="CloudUploadAltSolid" />
             </Button>
         </mah:WindowCommands>
     </mah:MetroWindow.LeftWindowCommands>
@@ -93,129 +135,277 @@
     <Grid>
         <Grid.Resources>
             <DataTemplate DataType="{x:Type local:SqlRunnerViewModel}">
-                <Border Margin="5">
-                    <Grid>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="5" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.Resources>
+                            <Style BasedOn="{StaticResource {x:Type TextBox}}" TargetType="{x:Type TextBox}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                        <Setter Property="Opacity" Value="0.25" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+
+                            <Style x:Key="OptionsButtonStyle"
+                                   BasedOn="{StaticResource {x:Type Button}}"
+                                   TargetType="{x:Type Button}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                        <Setter Property="Opacity" Value="0.25" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+
+                            <Style BasedOn="{StaticResource {x:Type ComboBox}}" TargetType="{x:Type ComboBox}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                        <Setter Property="Opacity" Value="0.25" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Resources>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="5" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="5" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="5" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="5" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="5" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="5" />
-                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="5" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="5" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <Grid Grid.Row="0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="5" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="5" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="5" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="5" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                        <TextBox Grid.Row="0"
+                                 Grid.Column="0"
+                                 Grid.ColumnSpan="9"
+                                 mah:TextBoxHelper.ClearTextButton="True"
+                                 mah:TextBoxHelper.Watermark="ConnectionString"
+                                 Text="{Binding OptionsViewModel.ConnectionString}"
+                                 ToolTip="ConnectionString" />
 
-                            <TextBox Grid.Row="0"
-                                     Grid.Column="0"
-                                     mah:TextBoxHelper.ClearTextButton="True"
-                                     mah:TextBoxHelper.Watermark="ConnectionString"
-                                     Text="{Binding OptionsViewModel.ConnectionString}"
-                                     ToolTip="ConnectionString" />
+                        <Button Grid.Row="0"
+                                Grid.Column="10"
+                                HorizontalAlignment="Right"
+                                Command="{Binding OpenConnectionStringResourceCommand}"
+                                Style="{StaticResource OptionsButtonStyle}"
+                                ToolTip="Run">
+                            <iconpacks:PackIconFontAwesome Kind="GlobeSolid" />
+                        </Button>
 
-                            <Button Grid.Row="0"
-                                    Grid.Column="2"
-                                    HorizontalAlignment="Right"
-                                    Command="{Binding OpenConnectionStringResourceCommand}"
-                                    ToolTip="Run">
-                                <iconpacks:PackIconFontAwesome Kind="GlobeSolid" />
-                            </Button>
+                        <TextBox Grid.Row="2"
+                                 Grid.Column="0"
+                                 Grid.ColumnSpan="9"
+                                 mah:TextBoxHelper.ClearTextButton="True"
+                                 mah:TextBoxHelper.Watermark="Path to SQL script file"
+                                 Text="{Binding OptionsViewModel.SqlFilePath}"
+                                 ToolTip="Path to SQL script file" />
 
-                            <TextBox Grid.Row="2"
-                                     Grid.Column="0"
-                                     mah:TextBoxHelper.ClearTextButton="True"
-                                     mah:TextBoxHelper.Watermark="Path to SQL script file"
-                                     Text="{Binding OptionsViewModel.SqlFilePath}"
-                                     ToolTip="Path to SQL script file" />
+                        <Button Grid.Row="2"
+                                Grid.Column="10"
+                                HorizontalAlignment="Right"
+                                Command="{Binding SelectScriptFileCommand}"
+                                Style="{StaticResource OptionsButtonStyle}"
+                                ToolTip="Run">
+                            <iconpacks:PackIconFontAwesome Kind="FolderOpenSolid" />
+                        </Button>
 
-                            <Button Grid.Row="2"
-                                    Grid.Column="2"
-                                    HorizontalAlignment="Right"
-                                    Command="{Binding SelectScriptFileCommand}"
-                                    ToolTip="Run">
-                                <iconpacks:PackIconFontAwesome Kind="FolderOpenSolid" />
-                            </Button>
+                        <ComboBox Grid.Row="4"
+                                  Grid.ColumnSpan="9"
+                                  ItemsSource="{Binding OptionsViewModel.Terminators}"
+                                  SelectedItem="{Binding OptionsViewModel.Terminator}" />
 
-                            <ComboBox Grid.Row="4"
-                                      ItemsSource="{Binding OptionsViewModel.Terminators}"
-                                      SelectedItem="{Binding OptionsViewModel.Terminator}" />
+                        <Button Grid.Row="4"
+                                Grid.Column="10"
+                                HorizontalAlignment="Right"
+                                Style="{StaticResource OptionsButtonStyle}"
+                                ToolTip="Custom">
+                            <iconpacks:PackIconFontAwesome Kind="EditSolid" />
+                        </Button>
 
-                            <Button Grid.Row="4"
-                                    Grid.Column="2"
-                                    HorizontalAlignment="Right"
-                                    ToolTip="Custom">
-                                <iconpacks:PackIconFontAwesome Kind="EditSolid" />
-                            </Button>
+                        <ToggleButton x:Name="LogToggle"
+                                      Grid.Row="6"
+                                      Grid.Column="4">
+                            <ToggleButton.Style>
+                                <Style BasedOn="{StaticResource {x:Type ToggleButton}}" TargetType="{x:Type ToggleButton}">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter Property="ToolTip" Value="Hide Log" />
+                                            <Setter Property="Content">
+                                                <Setter.Value>
+                                                    <iconpacks:PackIconFontAwesome Kind="EyeSlashRegular" />
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="False">
+                                            <Setter Property="ToolTip" Value="Show Log" />
+                                            <Setter Property="Content">
+                                                <Setter.Value>
+                                                    <iconpacks:PackIconFontAwesome Kind="EyeRegular" />
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ToggleButton.Style>
+                        </ToggleButton>
 
-                            <Button Grid.Row="6"
-                                    Grid.Column="2"
-                                    HorizontalAlignment="Right"
-                                    Command="{Binding ExecuteScriptCommand}"
-                                    ToolTip="Run">
-                                <iconpacks:PackIconFontAwesome Kind="PlaySolid" />
-                            </Button>
-                        </Grid>
-
-                        <DockPanel Grid.Row="2" DataContext="{Binding Log}">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <ItemsControl ItemsSource="{Binding Items}"
-                                              ScrollViewer.CanContentScroll="True"
-                                              VirtualizingStackPanel.IsVirtualizing="True">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="events:LogEvent">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Timestamp, StringFormat=d/M/yyyy HH:mm:ss}" />
-                                                <TextBlock Margin="5,0,0,0" Text="{Binding Level, Mode=OneWay, StringFormat={}\[{0}\]}">
-                                                    <TextBlock.Style>
-                                                        <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="{x:Type TextBlock}">
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding Level}" Value="Verbose">
-                                                                    <Setter Property="Foreground" Value="#555" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding Level}" Value="Debug">
-                                                                    <Setter Property="Foreground" Value="#999" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding Level}" Value="Information">
-                                                                    <Setter Property="Foreground" Value="#ccc" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding Level}" Value="Warning">
-                                                                    <Setter Property="Foreground" Value="Gold" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding Level}" Value="Error">
-                                                                    <Setter Property="Foreground" Value="Orange" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding Level}" Value="Fatal">
-                                                                    <Setter Property="Foreground" Value="Red" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                                <TextBlock Margin="10,0" Text="{Binding MessageTemplate.Text}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <VirtualizingStackPanel />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </DockPanel>
+                        <Button Grid.Row="6"
+                                Grid.Column="6"
+                                HorizontalAlignment="Right">
+                            <Button.Style>
+                                <Style BasedOn="{StaticResource {x:Type Button}}" TargetType="{x:Type Button}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                            <Setter Property="ToolTip" Value="Pause" />
+                                            <Setter Property="Command" Value="{Binding PauseScriptCommand}" />
+                                            <Setter Property="Content">
+                                                <Setter.Value>
+                                                    <iconpacks:PackIconFontAwesome Kind="PauseSolid" />
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsBusy}" Value="False">
+                                            <Setter Property="ToolTip" Value="Run" />
+                                            <Setter Property="Command" Value="{Binding ExecuteScriptCommand}" />
+                                            <Setter Property="Content">
+                                                <Setter.Value>
+                                                    <iconpacks:PackIconFontAwesome Kind="PlaySolid" />
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Grid.Row="6"
+                                Grid.Column="8"
+                                Command="{Binding ExecuteScriptCommand.CancelCommand}"
+                                ToolTip="Cancel">
+                            <iconpacks:PackIconFontAwesome Kind="StopSolid" />
+                        </Button>
                     </Grid>
-                </Border>
+
+                    <DockPanel Grid.Row="2" DataContext="{Binding Log}">
+                        <DockPanel.Style>
+                            <Style TargetType="{x:Type DockPanel}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsChecked, ElementName=LogToggle}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsChecked, ElementName=LogToggle}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DockPanel.Style>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding Items}"
+                                          ScrollViewer.CanContentScroll="True"
+                                          VirtualizingStackPanel.IsVirtualizing="True">
+                                <ItemsControl.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Command="{Binding SelectedRunner.Log.LogVerboseCommand, Source={StaticResource ShellViewModel}}" Header="Log Verbose">
+                                            <MenuItem.Icon>
+                                                <iconpacks:FontAwesome Kind="StreamSolid" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding SelectedRunner.Log.LogDebugCommand, Source={StaticResource ShellViewModel}}" Header="Log Debug">
+                                            <MenuItem.Icon>
+                                                <iconpacks:FontAwesome Kind="StreamSolid" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding SelectedRunner.Log.LogInformationCommand, Source={StaticResource ShellViewModel}}" Header="Log Information">
+                                            <MenuItem.Icon>
+                                                <iconpacks:FontAwesome Kind="StreamSolid" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding SelectedRunner.Log.LogWarningCommand, Source={StaticResource ShellViewModel}}" Header="Log Warning">
+                                            <MenuItem.Icon>
+                                                <iconpacks:FontAwesome Kind="StreamSolid" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding SelectedRunner.Log.LogErrorCommand, Source={StaticResource ShellViewModel}}" Header="Log Error">
+                                            <MenuItem.Icon>
+                                                <iconpacks:FontAwesome Kind="StreamSolid" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding SelectedRunner.Log.LogFatalCommand, Source={StaticResource ShellViewModel}}" Header="Log Fatal">
+                                            <MenuItem.Icon>
+                                                <iconpacks:FontAwesome Kind="StreamSolid" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <Separator />
+                                        <MenuItem Command="{Binding SelectedRunner.Log.ClearCommand, Source={StaticResource ShellViewModel}}" Header="Clear">
+                                            <MenuItem.Icon>
+                                                <iconpacks:FontAwesome Kind="TrashSolid" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </ContextMenu>
+                                </ItemsControl.ContextMenu>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="events:LogEvent">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Timestamp, StringFormat=d/M/yyyy HH:mm:ss}" />
+                                            <TextBlock Margin="5 0 0 0" Text="{Binding Level, Mode=OneWay, StringFormat={}\[{0}\]}">
+                                                <TextBlock.Style>
+                                                    <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="{x:Type TextBlock}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Verbose">
+                                                                <Setter Property="Foreground" Value="#555" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Debug">
+                                                                <Setter Property="Foreground" Value="#999" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Information">
+                                                                <Setter Property="Foreground" Value="#ccc" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Warning">
+                                                                <Setter Property="Foreground" Value="Gold" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Error">
+                                                                <Setter Property="Foreground" Value="Orange" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Level}" Value="Fatal">
+                                                                <Setter Property="Foreground" Value="Red" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Margin="10 0" Text="{Binding MessageTemplate.Text}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Grid>
             </DataTemplate>
         </Grid.Resources>
         <Grid.ColumnDefinitions>
@@ -235,39 +425,130 @@
         <Border Grid.Row="1" Grid.Column="2">
             <StackPanel Orientation="Vertical">
 
-                <mah:MetroProgressBar>
-                    <mah:MetroProgressBar.Style>
-                        <Style BasedOn="{StaticResource {x:Type mah:MetroProgressBar}}" TargetType="{x:Type mah:MetroProgressBar}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedRunner.IsBusy, Source={StaticResource ShellViewModel}}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding SelectedRunner.IsBusy, Source={StaticResource ShellViewModel}}" Value="False">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </mah:MetroProgressBar.Style>
-                </mah:MetroProgressBar>
-
                 <TextBlock HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            FontSize="24"
-                           Text="{Binding SelectedRunner.Name, Source={StaticResource ShellViewModel}}" />
+                           Text="{Binding SelectedRunner.Name, Source={StaticResource ShellViewModel}}"
+                           TextTrimming="CharacterEllipsis" />
             </StackPanel>
+            <Border.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Command="{Binding SelectedRunner.EditNameCommand, Source={StaticResource ShellViewModel}}" Header="Edit Name">
+                        <MenuItem.Icon>
+                            <iconpacks:PackIconFontAwesome Kind="PencilRulerSolid" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </ContextMenu>
+            </Border.ContextMenu>
         </Border>
 
         <mah:TransitioningContentControl Grid.Row="3"
                                          Grid.Column="1"
                                          Grid.ColumnSpan="2"
-                                         Content="{Binding SelectedRunner, Source={StaticResource ShellViewModel}}"
-                                         Transition="Right" />
+                                         Margin="5"
+                                         Transition="Right">
+            <mah:TransitioningContentControl.Style>
+                <Style BasedOn="{StaticResource {x:Type mah:TransitioningContentControl}}" TargetType="{x:Type mah:TransitioningContentControl}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsDashboardOpen, ElementName=ShellWindow}" Value="False">
+                            <Setter Property="Content" Value="{Binding SelectedRunner, Source={StaticResource ShellViewModel}}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsDashboardOpen, ElementName=ShellWindow}" Value="True">
+                            <Setter Property="Content">
+                                <Setter.Value>
+                                    <ItemsControl ItemsSource="{Binding Runners, Source={StaticResource ShellViewModel}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type local:SqlRunnerViewModel}">
+                                                <mah:Tile Title="{Binding Name}"
+                                                          Width="200"
+                                                          Height="100">
+                                                    <DockPanel>
+                                                        <mah:ProgressRing DockPanel.Dock="Left" IsActive="{Binding IsBusy, Mode=OneWay}" />
+                                                        <StackPanel Margin="5 0 0 0">
+                                                            <TextBlock>
+                                                                <Run Text="{Binding Value, Mode=OneWay}" />
+                                                                <Run Text="/" />
+                                                                <Run Text="{Binding Maximum, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                            <TextBlock>
+                                                                <Run Text="{Binding CommandsExecuted, Mode=OneWay}" />
+                                                                <Run Text="c/s" />
+                                                            </TextBlock>
+                                                            <TextBlock>
+                                                                <Run Text="{Binding ScriptRunTime.Hours, StringFormat={}{0}h, Mode=OneWay}" />
+                                                                <Run Text="{Binding ScriptRunTime.Minutes, StringFormat={}{0}min, Mode=OneWay}" />
+                                                                <Run Text="{Binding ScriptRunTime.Seconds, StringFormat={}{0}s, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                    <mah:Tile.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Command="{Binding EditNameCommand}" Header="Edit">
+                                                                <MenuItem.Icon>
+                                                                    <iconpacks:PackIconFontAwesome Kind="PencilRulerSolid" />
+                                                                </MenuItem.Icon>
+                                                            </MenuItem>
+                                                            <Separator />
+                                                            <MenuItem Command="{Binding ExecuteScriptCommand}" Header="Run">
+                                                                <MenuItem.Icon>
+                                                                    <iconpacks:PackIconFontAwesome Kind="PlaySolid" />
+                                                                </MenuItem.Icon>
+                                                            </MenuItem>
+                                                            <MenuItem Command="{Binding PauseScriptCommand}" Header="Pause">
+                                                                <MenuItem.Icon>
+                                                                    <iconpacks:PackIconFontAwesome Kind="PauseSolid" />
+                                                                </MenuItem.Icon>
+                                                            </MenuItem>
+                                                            <MenuItem Command="{Binding ExecuteScriptCommand.CancelCommand}" Header="Ccancel">
+                                                                <MenuItem.Icon>
+                                                                    <iconpacks:PackIconFontAwesome Kind="StopSolid" />
+                                                                </MenuItem.Icon>
+                                                            </MenuItem>
+                                                        </ContextMenu>
+                                                    </mah:Tile.ContextMenu>
+                                                </mah:Tile>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
+                                </Setter.Value>
+                            </Setter>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </mah:TransitioningContentControl.Style>
+        </mah:TransitioningContentControl>
         <Border Grid.Row="4"
                 Grid.Column="0"
                 Grid.ColumnSpan="4"
                 Background="{DynamicResource AccentColorBrush}">
             <StackPanel Margin="5" Orientation="Horizontal">
-                <TextBlock>Status</TextBlock>
+                <TextBlock>
+                    <Run Text="{Binding SelectedRunner.ScriptLineCount, Source={StaticResource ShellViewModel}, Mode=OneWay}" />
+                    <Run Text="lines in SQL script" />
+                </TextBlock>
+
+                <TextBlock Margin="10 0">
+                    <Run Text="{Binding SelectedRunner.Value, Source={StaticResource ShellViewModel}, Mode=OneWay}" />
+                    <Run Text="/" />
+                    <Run Text="{Binding SelectedRunner.Maximum, Source={StaticResource ShellViewModel}, Mode=OneWay}" />
+                    <Run Text="commands executed" />
+                </TextBlock>
+
+                <TextBlock Margin="10 0">
+                    <Run Text="{Binding SelectedRunner.CommandsExecuted, Source={StaticResource ShellViewModel}, Mode=OneWay}" />
+                    <Run Text="Commands per second" />
+                </TextBlock>
+
+                <TextBlock Margin="10 0">
+                    <Run Text="{Binding SelectedRunner.ScriptRunTime.Hours, Source={StaticResource ShellViewModel}, StringFormat={}{0}h, Mode=OneWay}" />
+                    <Run Text="{Binding SelectedRunner.ScriptRunTime.Minutes, Source={StaticResource ShellViewModel}, StringFormat={}{0}min, Mode=OneWay}" />
+                    <Run Text="{Binding SelectedRunner.ScriptRunTime.Seconds, Source={StaticResource ShellViewModel}, StringFormat={}{0}s, Mode=OneWay}" />
+                </TextBlock>
             </StackPanel>
         </Border>
     </Grid>
